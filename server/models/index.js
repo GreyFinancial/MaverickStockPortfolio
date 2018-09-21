@@ -1,33 +1,43 @@
 const Stock = require('./Stock.js');
 const TickerNames = require('./TickerNames');
+const Sequelize = require('sequelize');
+const Op = Sequelize.Op;
 
 module.exports = {
   // Adds stock ticker to database
-  saveStock: function(stock, quantity = 1, price = 1) {
+  saveStock: function(stock, quantity = 1, price = 1, uid, change, ytdChange, latestVolume) {
     return TickerNames.findOne({
       where: {
         symbol: stock
       }
     })
     .then((data) => {
-      return Stock.create({stock_ticker : stock, company_name: data.name, quantity : quantity, price : price})
+      return Stock.create(
+        {stock_ticker : stock, 
+          company_name: data.name, 
+          quantity : quantity, 
+          price : price, 
+          uid : uid, 
+          change : change,
+          ytdChange: ytdChange,
+          latestVolume: latestVolume
+        })
     })
   },
   // Gets stock tickers from database
-  getStocks: function(sort) {
+  getStocks: function(sort, uid) {
     if (sort === 'Alphabetical') {
-      return Stock.findAll({order: [['stock_ticker', 'ASC']]})
+      return Stock.findAll({where: {uid: uid}, order: [['stock_ticker', 'ASC']]})
     } else if (sort === 'Total Price') {
-      return Stock.findAll({order: [['price', 'DESC'],['quantity', 'DESC']]})
+      return Stock.findAll({where: {uid: uid}, order: [['price', 'DESC'],['quantity', 'DESC']]})
     } else {
-      return Stock.findAll({order: [['quantity', 'DESC']]})
+      return Stock.findAll({where: {uid: uid}, order: [['quantity', 'DESC']]})
     }
-    
   },
   // Changes quantity to 0
-  deleteStock: function(stocklist) {
+  deleteStock: function(stocklist, uid) {
     return Stock.destroy({where: {
-      stock_ticker : stocklist
+      stock_ticker : stocklist, uid: uid
     }})
   },
 
@@ -52,9 +62,12 @@ module.exports = {
   },
 
   //updates stock price field in database to reflect latest price
-  updateStockPrice: function(ticker, price) {
+  updateStockPrice: function(ticker, price, change, ytdChange, latestVolume) {
     return Stock.update({
-      price : price
+      price : price,
+      change : change,
+      ytdChange : ytdChange,
+      latestVolume : latestVolume
     }, {
       where: {
         stock_ticker : ticker
@@ -71,5 +84,30 @@ module.exports = {
      .catch((err) => {
        console.log(err);
      })
+  },
+
+  //gets a ticker if it is found
+  getAllTickers: function (ticker_name) {
+      return TickerNames.findOne({
+        where: {
+          symbol: ticker_name
+        }
+      })
+    },
+    
+  //gets a list of all tickers that may similarly match input
+  getGroupTickers: function (ticker_name) {
+    return TickerNames.findAll(
+      {
+        limit: 10,
+        where: { [Op.or]: 
+          [
+            {symbol: { [Op.like]: ticker_name +'%' }},
+            {name: { [Op.like]: ticker_name +'%' }}        
+          ] 
+        }
+      }
+    );
   }
-};
+
+  }

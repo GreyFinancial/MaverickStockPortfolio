@@ -27,4 +27,10 @@ router.post('/updateQuantity', stockController.updateStockQuantity);
 //never called by client
 router.post('/tickersAndNames', stockController.postTickersAndNames);
 
+// get all tickers getAllTickers
+router.get('/tickers', stockController.getAllTickers);
+
+//get banner info
+router.get('/banner', stockController.getBannerInfo)
+
 module.exports = router;
